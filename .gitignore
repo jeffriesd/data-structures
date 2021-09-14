@@ -5,5 +5,8 @@
 # gdb files 
 *.gdb_history
 
+# vim swap files
+*.swp
+
 *.out
 *.o
