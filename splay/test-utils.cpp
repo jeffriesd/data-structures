@@ -30,7 +30,12 @@ std::vector<int> randomInts(int n, int seed, int maxVal) {
 }
 
 
-
+// count nodes in a subtree
+// for testing augmented sizes 
+int countNodes(STNode *node) {
+  if (node == nullptr) return 0;
+  return 1 + countNodes(node->left) + countNodes(node->right);
+}
 
 
 // check all nodes using 
@@ -64,6 +69,8 @@ bool ChildParentPredicate::testNode(STNode *node) {
   return parentOk && leftOk && rightOk;
 }
 
+
+
 // check whether left subchild is < node
 // and right subchild is > node 
 bool BSTNodePredicate::testNode(STNode *node) {
@@ -75,6 +82,12 @@ bool BSTNodePredicate::testNode(STNode *node) {
   if (node->hasRightChild())
     rightOK &= node->right->key > node->key;
   return leftOK && rightOK;
+}
+
+// node satisfies this predicate if its augmented 
+// sizes matches its actual (manually computed) size 
+bool SubtreeSizePredicate::testNode(STNode *node) {
+  return node->size == countNodes(node);
 }
 
 // test whether all nodes in a tree satisfy a predicate 

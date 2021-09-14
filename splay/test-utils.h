@@ -9,6 +9,9 @@ const int MAX_VAL = 10000;
 // generate n random non-negative integers upper bounded by maxVal
 std::vector<int> randomInts(int n, int seed=0, int maxVal=MAX_VAL);
 
+// count nodes in a subtree
+int countNodes(STNode * node);
+
 // TODO add traceback for when test fails on a particular node 
 
 // to create a new predicate for a tree: 
@@ -77,6 +80,14 @@ class ChildParentPredicate : public NodePredicate {
     bool testNode(STNode * node);
 };
 
+// node satisfies this predicate if its augmented 
+// sizes matches its actual (manually computed) size 
+class SubtreeSizePredicate : public NodePredicate { 
+  public:
+    bool testNode(STNode * node);
+};
+
+
 /********************************************************
 * TREE PREDICATES (end in "...Pred")
 ********************************************************/
@@ -91,6 +102,10 @@ class ChildParentPred : public TreePredicate {
     ChildParentPred() : TreePredicate(new ChildParentPredicate()) {}
 };
 
+class SubtreeSizePred : public TreePredicate { 
+  public:
+    SubtreeSizePred() : TreePredicate(new SubtreeSizePredicate()) {}
+};
 
 
 
