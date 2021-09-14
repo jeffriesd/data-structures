@@ -13,10 +13,14 @@ class STNode {
     STNode * parent;
     int key;
 
+    // subtree size
+    int size; 
+
     STNode(int k) 
       : left(nullptr), 
         right(nullptr), 
         parent(nullptr),
+        size(1),
         key(k) { }
 
     ~STNode();
@@ -41,6 +45,13 @@ class STNode {
     void rotateLeft();
     void rotateRight();
 
+    // set size to lsize + 1 + rsize 
+    void updateSizeFromChildren();
+
+    // update subtree sizes on path 
+    // from this node to root 
+    void updateSizeToRoot();
+
     // maximumLeaf value node in this subtree 
     STNode * maximumLeaf();
     // min value node in this subtree 
@@ -62,7 +73,6 @@ class SplayTree {
     STNode * _find(STNode* n, int key);
     STNode * _insert(STNode* n, int key);
     void removeNode(STNode * node);
-    void removeLeaf(STNode * node);
 
     void _printInorder(STNode *node);
 

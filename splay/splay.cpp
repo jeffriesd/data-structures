@@ -5,6 +5,20 @@
 #include <string>
 
 
+// TODO augment nodes with subtree sizes 
+// - when do they need to be updated? 
+//   - insertion 
+//   - removal 
+//   - rotations 
+//   - replaceNode, etc. 
+
+
+// TODO 
+// - implement upperBound(), lowerBound() 
+// - multiset 
+// - range counting 
+// - rank, select 
+
 // destructor for splay tree 
 // - delete all dynamically-allocated nodes 
 //   in the tree by deleting the root 
@@ -20,6 +34,24 @@ SplayTree::~SplayTree() {
 STNode::~STNode() {
   delete left; 
   delete right; 
+}
+
+// set size to lsize + 1 + rsize 
+void STNode::updateSizeFromChildren() {
+  int subtreeSize = 1; 
+  if (hasLeftChild())
+    subtreeSize += left->size;
+  if (hasRightChild())
+    subtreeSize += right->size;
+  size = subtreeSize;
+}
+
+// update all subtree sizes 
+// from this node to root 
+void STNode::updateSizeToRoot() {
+  STNode * cur;
+  for (cur = this; cur != nullptr; cur = cur->parent)
+    cur->updateSizeFromChildren();
 }
 
 // set left child and update parent pointer for child  
@@ -88,6 +120,13 @@ bool STNode::hasRightChild() {
  *
  *  <--- rotate left
  *  ---> rotate right 
+ *
+ *  subtree sizes: 
+ *  gp, a, b, c, sizes unchanged 
+ *
+ *  to update p and x: 
+ *  update p and then update x 
+ *  since p becomes child of x after rotation
  */
 void STNode::rotate() {
   // nothing to do for root node
@@ -96,9 +135,6 @@ void STNode::rotate() {
   // original parent, grandparent 
   STNode * p = parent;
   STNode* gp = parent->parent;
-
-  // debuggng
-  bool isleft = isLeftChild();
   
   if (isLeftChild()) 
     rotateRight();
@@ -108,10 +144,19 @@ void STNode::rotate() {
   // update grandparent references 
   if (gp != nullptr) {
     if (gp->left == p) 
-      gp->left = this;
+      gp->setLeftChild(this);
     else if (gp->right == p)
-      gp->right = this;
+      gp->setRightChild(this);
   }
+  else // this node has become root 
+    parent = gp;
+
+  // update subtree sizes.
+  // update p first
+  p->updateSizeFromChildren();
+
+  // then update current node (called x above)
+  updateSizeFromChildren();
 }
 
 /*
@@ -123,51 +168,35 @@ void STNode::rotate() {
  *      b   c     a   b    
  */
 // right children should rotate left
+// - rotate left and update subtree sizes 
+//
+// subtree sizes:
+// a, b, c, gp unchanged
+//
+// to update p: 
+// p->size = a->size + 1 + b->size
+//
+// to update x:
+// x->size = p->size + 1 + c->size
 void STNode::rotateLeft() {
   if (! isRightChild()) return;
-  STNode *a, *b, *c, *p, *gp;
+  STNode *b, *p, *gp;
   b = left;
-  c = right;
-  a = parent->left;
   p = parent;
-  // original grandparent 
-  gp = parent->parent;
-  
-  // a stays in place ;
-  // update b
-  if (b != nullptr)
-    b->parent = p;
-  // c stays in place ;
-  // update x
-  left = p;
-  parent = gp;
-  // update p
-  p->right = b;
-  p->parent = this;
+
+  p->setRightChild(b); 
+  setLeftChild(p);
 }
 
 // left children should rotate right 
 void STNode::rotateRight() {
   if (! isLeftChild()) return;
-  STNode *a, *b, *c, *p, *gp;
-  a = left;
+  STNode *b, *p, *gp;
   b = right;
-  c = parent->right;
   p = parent;
-  // original grandparent 
-  gp = parent->parent;
 
-  // a stays in place ;
-  // update b
-  if (b != nullptr)
-    b->parent = p;
-  // c stays in place ;
-  // update x
-  right = p;
-  parent = gp;
-  // update p
-  p->parent = this;
-  p->left = b;
+  p->setLeftChild(b); 
+  setRightChild(p);
 }
 
 bool STNode::isLeftChild() {
@@ -267,7 +296,7 @@ void SplayTree::splay(STNode *node) {
 
 // insert new node with key k in splay tree 
 void SplayTree::insert(int k) {
-  // try finding first
+  // try finding first (without splaying)
   STNode * n = _find(root, k);
   if (n != nullptr) {
     // TODO handle multiple of same key.. just use count?
@@ -296,29 +325,12 @@ bool STNode::isLeaf() {
   return ! (hasLeftChild() || hasRightChild());
 }
 
-// remove a node that is a leaf 
-// by setting its parent's corresponding child pointer
-// to nullptr
-void SplayTree::removeLeaf(STNode * node) {
-  assert(node->isLeaf());
-
-  replaceNode(node, nullptr);
-
-  // // node is root and a leaf, so tree only has one node 
-  // if (! node->hasParent()) {
-  //   root = nullptr;
-  //   return;
-  // }
-  // STNode * p = node->parent;
-  // if (node->isLeftChild())
-  //   p->left = nullptr;
-  // else if (node->isRightChild())
-  //   p->right = nullptr;
-}
-
 // replace node n with node m 
 // - m may be null
 // - but n cannot be null 
+//
+// n is unaffected. its parent/children 
+// are updated to connect to m. 
 //
 // children of n/m are unaffected 
 //
@@ -332,11 +344,14 @@ void SplayTree::replaceNode(STNode * n, STNode * m) {
 
   // update child pointers for parent of n
   if (n->isLeftChild())
-    n->parent->left = m;
+    n->parent->setLeftChild(m);
   else if (n->isRightChild())
-    n->parent->right = m;
+    n->parent->setRightChild(m);
 
-  // update parent pointer of m 
+  // update parent pointer of m.
+  //
+  // need to do this in case neither 
+  // isLeftChild() nor isRightChild() are true 
   if (m != nullptr)
     m->parent = n->parent;
 }
@@ -347,23 +362,6 @@ void SplayTree::removeNode(STNode * node) {
 
   STNode * nodeToSplay = node->parent;
 
-  // // node has 0 children 
-  // if (node->isLeaf()) {
-  //   removeLeaf(node);
-  //   nodeToSplay = node->parent;
-  // }
-  // // if node has 1 (left) child, 
-  // else if (! node->hasLeftChild()) {
-  //   // !!!!right is NOT ALWAYS LEAF... JUST NEED TO CONTRACT TREE 
-  //   //
-  //   // delete this node by swapping values and then deleting leaf 
-  //   swapNodeValues(node, node->right);
-  //   removeLeaf(node->right);
-  // // if node has 1 (right) child, 
-  // } else if (! node->hasRightChild()) {
-  //   swapNodeValues(node, node->left);
-  //   removeLeaf(node->left);
-  // }
   if (! node->hasLeftChild()) {
     // delete node by turning edges 
     // from node's parent to node's child 
@@ -373,8 +371,15 @@ void SplayTree::removeNode(STNode * node) {
     //
     // N.B. child can be null 
     replaceNode(node, node->right); 
+
+    // update subtree size of node parent 
+    if (node->hasParent())
+      node->parent->updateSizeFromChildren();
   } else if (! node->hasRightChild()) {
     replaceNode(node, node->left);
+    // update subtree size of node parent 
+    if (node->hasParent())
+      node->parent->updateSizeFromChildren();
   }
   else {
     // swap with predecessor (maximumLeaf of left subtree)
@@ -390,9 +395,10 @@ void SplayTree::removeNode(STNode * node) {
       replaceNode(node, pred);
 
       // connect pred to right subtree of node
-      if (node->hasRightChild())
-        node->right->parent = pred;
-      pred->right = node->right;
+      pred->setRightChild(node->right);
+
+      // update subtree sizes from pred to root
+      pred->updateSizeToRoot();
     }
     // if there are some nodes between node and pred
     else {
@@ -414,6 +420,10 @@ void SplayTree::removeNode(STNode * node) {
       // then remove the original pred. 
       // N.B., pred is right child by definition
       originalPredParent->setRightChild(originalPredChild);
+
+      // need to update subtree sizes 
+      // from originalPredParent to root
+      originalPredParent->updateSizeToRoot();
     }
   }
 
@@ -486,14 +496,13 @@ STNode* SplayTree::_insert(STNode* node, int k) {
     return newNode;
   }
 
-  if (k < node->key) {
-    node->left = _insert(node->left, k);
-    node->left->parent = node;
-  }
-  else if (k > node->key) {
-    node->right = _insert(node->right, k);
-    node->right->parent = node;
-  }
+  if (k < node->key) 
+    node->setLeftChild(_insert(node->left, k));
+  else if (k > node->key) 
+    node->setRightChild(_insert(node->right, k));
+
+  // update subtree size 
+  node->updateSizeFromChildren();
 
   return node;
 }
