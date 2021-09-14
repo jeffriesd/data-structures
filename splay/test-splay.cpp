@@ -22,8 +22,52 @@ void SplayTreeTest::tearDown() {
 
 // TODO 
 // - run tests with many different seeds 
+//  -- generalize this 
 // - add subtree sizes and test them 
+//  -- could speed up subtree size test by writing it manually
+//  -- - current version calls countNodes on every node, 
+//     - when we could just run the test in a single call to countNodes. 
+//      ( i.e., a single bottom-up traversal ) 
 // - test balance (won't always be balanced, but should be most of the time) 
+
+// test subtree sizes update with inserts only 
+void SplayTreeTest::testSizesWithInsert() {
+  int numNodes = 100;
+  int seed = 1; 
+
+  SubtreeSizePred sspred;
+  vi ints = randomInts(numNodes, seed);
+  for (int i : ints) {
+    tree->insert(i);
+    // test that all subtree size 
+    // augmentations are correct
+    CPPUNIT_ASSERT(sspred.testTree(*tree));
+  }
+
+  std::cout << "Subtree size w/ insert passed." << std::endl;
+}
+
+// test subtree sizes after removing some nodes 
+void SplayTreeTest::testSizesWithRemove() {
+  int numNodes = 100;
+  int seed = 5; 
+
+  vi ints = randomInts(numNodes, seed);
+  for (int i : ints) {
+    tree->insert(i);
+  }
+
+  // remove half of the nodes 
+  for (int i = 0 ; i < numNodes / 2; i++) 
+    tree->remove(ints[i]);
+
+  SubtreeSizePred sspred;
+  // test that all subtree size 
+  // augmentations are correct
+  CPPUNIT_ASSERT(sspred.testTree(*tree));
+
+  std::cout << "Subtree size w/ remove passed." << std::endl;
+}
 
 
 // try inserting nodes using many different seeds
@@ -39,7 +83,7 @@ void SplayTreeTest::testInsert() {
 
 // just try inserting a bunch of nodes 
 void SplayTreeTest::testInsertHelper(int seed) {
-  int numNodes = 1000;
+  int numNodes = 100;
   vi ints = randomInts(numNodes, seed);
   for (int i : ints) {
     tree->insert(i);
@@ -69,7 +113,7 @@ void SplayTreeTest::testFind() {
 }
 
 void SplayTreeTest::testFindHelper(int seed) {
-  int numNodes = 1000;
+  int numNodes = 100;
   vi ints = randomInts(numNodes, seed);
   for (int i : ints) {
     tree->insert(i);
@@ -82,7 +126,10 @@ void SplayTreeTest::testFindHelper(int seed) {
 // try inserting and removing a single node 
 void SplayTreeTest::testRemoveOne() {
   tree->insert(55);
+  tree->insert(59);
   tree->remove(55);
+  SubtreeSizePred sspred;
+  CPPUNIT_ASSERT(sspred.testTree(*tree));
 }
 
 // try inserting a bunch of nodes 
@@ -97,11 +144,12 @@ void SplayTreeTest::testRemoveAll() {
 }
 
 void SplayTreeTest::testRemoveAllHelper(int seed) {
-  int numNodes = 1000;
+  int numNodes = 100;
   vi ints = randomInts(numNodes, seed, 10*numNodes);
   for (int i : ints) 
     tree->insert(i);
 
+  SubtreeSizePred sspred;
   for (int i = 0; i < ints.size(); i++) {
     // key should be present before removal 
     STNode * f = tree->find(ints[i]);
@@ -112,6 +160,9 @@ void SplayTreeTest::testRemoveAllHelper(int seed) {
     tree->remove(ints[i]);
     f = tree->find(ints[i]);
     CPPUNIT_ASSERT(f == nullptr);
+
+    // assert subtree sizes are satisfied 
+    CPPUNIT_ASSERT(sspred.testTree(*tree));
   }
 
   std::cout << "removed all " << numNodes << " nodes successfully." << std::endl;

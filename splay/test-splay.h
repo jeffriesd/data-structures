@@ -18,6 +18,8 @@ class SplayTreeTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testFind);
   CPPUNIT_TEST(testRemoveAll);
   CPPUNIT_TEST(testRemoveOne);
+  CPPUNIT_TEST(testSizesWithInsert);
+  CPPUNIT_TEST(testSizesWithRemove);
   CPPUNIT_TEST_SUITE_END();
 
   public:
@@ -32,6 +34,10 @@ class SplayTreeTest : public CPPUNIT_NS::TestFixture {
     void testRemoveAllHelper(int seed);
     void testRemoveOne();
     // void test2();
+    
+    void testSizesWithInsert();
+    void testSizesWithRemove();
+
 
   private:
     // SplayTree object to test 
