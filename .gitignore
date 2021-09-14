@@ -1,5 +1,9 @@
 
+# CppUnit binaries 
 *.test
+
+# gdb files 
+*.gdb_history
 
 *.out
 *.o
