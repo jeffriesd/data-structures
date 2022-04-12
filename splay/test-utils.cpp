@@ -37,6 +37,20 @@ int countNodes(STNode *node) {
   return 1 + countNodes(node->left) + countNodes(node->right);
 }
 
+// store inorder traversal in vector
+// and then compute polynomial hash
+ll hashInorder(STNode *node) {
+  std::vector<int> keys; 
+  node->getInorder(keys);
+
+  ll pp = 1;
+  ll hash = 0;
+  for (int k : keys) {
+    hash += (k * pp) % M;
+    pp *= P;
+  }
+  return hash % M;
+}
 
 // check all nodes using 
 // NodePredicate pointer provided in constructor 
@@ -88,6 +102,12 @@ bool BSTNodePredicate::testNode(STNode *node) {
 // sizes matches its actual (manually computed) size 
 bool SubtreeSizePredicate::testNode(STNode *node) {
   return node->size == countNodes(node);
+}
+
+// augmented hash has to match polynomial
+// hash of inorder traversal 
+bool SubtreeHashPredicate::testNode(STNode *node) {
+  return node->hash == hashInorder(node);
 }
 
 // test whether all nodes in a tree satisfy a predicate 

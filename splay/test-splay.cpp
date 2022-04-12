@@ -32,16 +32,20 @@ void SplayTreeTest::tearDown() {
 
 // test subtree sizes update with inserts only 
 void SplayTreeTest::testSizesWithInsert() {
-  int numNodes = 100;
+  int numNodes = 1000;
   int seed = 1; 
 
   SubtreeSizePred sspred;
+  SubtreeHashPred shpred;
   vi ints = randomInts(numNodes, seed);
   for (int i : ints) {
     tree->insert(i);
     // test that all subtree size 
     // augmentations are correct
     CPPUNIT_ASSERT(sspred.testTree(*tree));
+
+    // test hashes
+    CPPUNIT_ASSERT(shpred.testTree(*tree));
   }
 
   std::cout << "Subtree size w/ insert passed." << std::endl;
@@ -49,7 +53,7 @@ void SplayTreeTest::testSizesWithInsert() {
 
 // test subtree sizes after removing some nodes 
 void SplayTreeTest::testSizesWithRemove() {
-  int numNodes = 100;
+  int numNodes = 1000;
   int seed = 5; 
 
   vi ints = randomInts(numNodes, seed);
@@ -65,6 +69,10 @@ void SplayTreeTest::testSizesWithRemove() {
   // test that all subtree size 
   // augmentations are correct
   CPPUNIT_ASSERT(sspred.testTree(*tree));
+
+  // test subtree hashes 
+  SubtreeHashPred shpred;
+  CPPUNIT_ASSERT(shpred.testTree(*tree));
 
   std::cout << "Subtree size w/ remove passed." << std::endl;
 }
@@ -150,6 +158,7 @@ void SplayTreeTest::testRemoveAllHelper(int seed) {
     tree->insert(i);
 
   SubtreeSizePred sspred;
+  SubtreeHashPred hashpred;
   for (int i = 0; i < ints.size(); i++) {
     // key should be present before removal 
     STNode * f = tree->find(ints[i]);
@@ -161,8 +170,11 @@ void SplayTreeTest::testRemoveAllHelper(int seed) {
     f = tree->find(ints[i]);
     CPPUNIT_ASSERT(f == nullptr);
 
-    // assert subtree sizes are satisfied 
+    // assert subtree sizes are correct
     CPPUNIT_ASSERT(sspred.testTree(*tree));
+
+    // assert subtree hashes are correct
+    CPPUNIT_ASSERT(hashpred.testTree(*tree));
   }
 
   std::cout << "removed all " << numNodes << " nodes successfully." << std::endl;

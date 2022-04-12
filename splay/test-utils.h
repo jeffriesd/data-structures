@@ -12,6 +12,10 @@ std::vector<int> randomInts(int n, int seed=0, int maxVal=MAX_VAL);
 // count nodes in a subtree
 int countNodes(STNode * node);
 
+// compute hash of inorder traversal of 
+// subtree rooted at this node 
+ll hashInorder(STNode * node);
+
 // TODO add traceback for when test fails on a particular node 
 
 // to create a new predicate for a tree: 
@@ -87,6 +91,16 @@ class SubtreeSizePredicate : public NodePredicate {
     bool testNode(STNode * node);
 };
 
+// node satisfies this predicate if its augmented
+// hash value matches the polynomial hash
+// of the inorder traversal of the subtree
+// rooted at this node  
+class SubtreeHashPredicate : public NodePredicate { 
+  public:
+    bool testNode(STNode * node);
+};
+
+
 
 /********************************************************
 * TREE PREDICATES (end in "...Pred")
@@ -105,6 +119,11 @@ class ChildParentPred : public TreePredicate {
 class SubtreeSizePred : public TreePredicate { 
   public:
     SubtreeSizePred() : TreePredicate(new SubtreeSizePredicate()) {}
+};
+
+class SubtreeHashPred : public TreePredicate { 
+  public:
+    SubtreeHashPred() : TreePredicate(new SubtreeHashPredicate()) {}
 };
 
 
