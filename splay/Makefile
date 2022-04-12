@@ -41,7 +41,7 @@ test-splay: $(OBJM) $(SRCTEST)
 compile: $(OBJM) $(OBJTEST)
 
 splay.o : splay.cpp splay.h
-test-utils.o : test-utils.h
+test-utils.o : test-utils.h splay.h
 
 # default compile 
 # $< evaluates to "xxx.cpp"
