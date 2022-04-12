@@ -1,29 +1,62 @@
 #include "splay.h"
-#include "test-utils.h" // just for debugging
+// #include "test-utils.h" // just for debugging
 #include <assert.h>
 #include <iostream>
 #include <string>
 
 
-// TODO augment nodes with subtree sizes 
-// - when do they need to be updated? 
-//   - insertion 
-//   - removal 
-//   - rotations 
-//   - replaceNode, etc. 
-
-
 // TODO 
+// ** separate size, hash tests 
+//
+// - make SplayTree work for general type 
+//   with comparator 
 // - implement upperBound(), lowerBound() 
 // - multiset 
 // - range counting 
 // - rank, select 
 
+// binary exponentiation 
+// from cp-algorithms 
+ll binpow(ll a, ll b) {
+  ll res = 1;
+  while (b > 0) {
+    if (b & 1)
+      res *= a;
+    a *= a;
+    b >>= 1;
+  }
+  return res;
+}
+
 // destructor for splay tree 
 // - delete all dynamically-allocated nodes 
 //   in the tree by deleting the root 
 SplayTree::~SplayTree() {
+  if (root == nullptr) return;
   delete root;
+}
+
+
+
+// compare based on hash
+//
+// - O(n) worst case, but collisions should be rare 
+bool operator== (const SplayTree& t1, const SplayTree& t2) {
+  // if addresses are same, same tree
+  if (&t1 == &t2) return true;
+
+  // different hashes -> different trees 
+  if (t1.getHash() != t2.getHash()) return false;
+
+  // // if hashes match, manually check keys 
+  std::vector<int> v1, v2; 
+  t1.getInorder(v1);
+  t2.getInorder(v2);
+
+  if (v1.size() != v2.size()) return false;
+  for (int i = 0; i < v1.size(); i++)
+    if (v1[i] != v2[i]) return false;
+  return true;
 }
 
 // delete left and right subtree pointers
@@ -34,6 +67,79 @@ SplayTree::~SplayTree() {
 STNode::~STNode() {
   delete left; 
   delete right; 
+}
+
+
+// update size and hash 
+void STNode::updateAugmentations() {
+  // N.B. update size first 
+  // bc polynomial hash computation
+  // uses sizes 
+  updateSizeFromChildren();
+  updateHashFromChildren();
+}
+
+// precondition: size is up to date 
+void STNode::updateHashFromChildren() {
+  // compute polynomial hash from children 
+  
+  // number of children in left subtree. 
+  ll ln, lhash; 
+  ln = lhash = 0;
+  if (hasLeftChild()) {
+    ln = left->size;
+    lhash = left->hash;
+  }
+
+  ll rhash = hasRightChild() ? right->hash : 0;
+
+  // TODO precomputing powers of p could speed up 
+  //
+  // hash of this node is 
+  // (left hash...) 
+  // + key * p^ln 
+  // + p^(ln+1) * (right hash...)
+  hash = lhash 
+         + (key*binpow(P, ln) % M)
+         + (rhash*binpow(P, ln+1) % M);
+  hash = hash % M; 
+}
+
+ll SplayTree::getHash() const {
+  if (root == nullptr) return 0;
+  return root->hash;
+}
+
+int SplayTree::getSize() const {
+  if (root == nullptr) return 0;
+  return root->size;
+}
+
+void _getInorder(const SplayTree& t, std::vector<int> &v) {
+  if (t.root != nullptr)
+    t.root->getInorder(v);
+}
+
+void SplayTree::getInorder(std::vector<int> &v) const {
+  if (root != nullptr)
+    root->getInorder(v);
+}
+
+void _getInorder(const STNode& t, std::vector<int> &v) {
+  if (t.hasLeftChild())
+    t.left->getInorder(v);
+  v.push_back(t.key);
+  if (t.hasRightChild())
+    t.right->getInorder(v);
+}
+
+// store inorder traversal in a vector
+void STNode::getInorder(std::vector<int> &v) const {
+  if (hasLeftChild())
+    left->getInorder(v);
+  v.push_back(key);
+  if (hasRightChild())
+    right->getInorder(v);
 }
 
 // set size to lsize + 1 + rsize 
@@ -48,10 +154,10 @@ void STNode::updateSizeFromChildren() {
 
 // update all subtree sizes 
 // from this node to root 
-void STNode::updateSizeToRoot() {
+void STNode::updateAugToRoot() {
   STNode * cur;
   for (cur = this; cur != nullptr; cur = cur->parent)
-    cur->updateSizeFromChildren();
+    cur->updateAugmentations();
 }
 
 // set left child and update parent pointer for child  
@@ -90,21 +196,21 @@ void STNode::printNeighbors() {
   std::cout << "\t-right->" << rs << std::endl;
 }
 
-bool STNode::hasParent() {
+bool STNode::hasParent() const {
   return parent != nullptr;
 }
 
-bool STNode::hasGrandP() {
+bool STNode::hasGrandP() const {
   if (! hasParent())
     return false;
   return parent->hasParent();
 }
 
-bool STNode::hasLeftChild() {
+bool STNode::hasLeftChild() const {
   return left != nullptr;
 }
 
-bool STNode::hasRightChild() {
+bool STNode::hasRightChild() const {
   return right != nullptr;
 }
 
@@ -153,10 +259,12 @@ void STNode::rotate() {
 
   // update subtree sizes.
   // update p first
-  p->updateSizeFromChildren();
+  // p->updateSizeFromChildren();
+  p->updateAugmentations();
 
   // then update current node (called x above)
-  updateSizeFromChildren();
+  // updateSizeFromChildren();
+  updateAugmentations();
 }
 
 /*
@@ -199,12 +307,12 @@ void STNode::rotateRight() {
   setRightChild(p);
 }
 
-bool STNode::isLeftChild() {
+bool STNode::isLeftChild() const {
   if (! hasParent()) return false;
   return this == this->parent->left;
 }
 
-bool STNode::isRightChild() {
+bool STNode::isRightChild() const {
   if (! hasParent()) return false;
   return this == this->parent->right;
 }
@@ -321,7 +429,7 @@ void SplayTree::insert(int k) {
 }
 
 
-bool STNode::isLeaf() {
+bool STNode::isLeaf() const {
   return ! (hasLeftChild() || hasRightChild());
 }
 
@@ -349,7 +457,8 @@ void SplayTree::replaceNode(STNode * n, STNode * m) {
     n->parent->setRightChild(m);
 
   // update parent pointer of m.
-  //
+  // 
+  // seems redundant but 
   // need to do this in case neither 
   // isLeftChild() nor isRightChild() are true 
   if (m != nullptr)
@@ -374,12 +483,14 @@ void SplayTree::removeNode(STNode * node) {
 
     // update subtree size of node parent 
     if (node->hasParent())
-      node->parent->updateSizeFromChildren();
+      node->parent->updateAugmentations();
+      // node->parent->updateSizeFromChildren();
   } else if (! node->hasRightChild()) {
     replaceNode(node, node->left);
     // update subtree size of node parent 
     if (node->hasParent())
-      node->parent->updateSizeFromChildren();
+      node->parent->updateAugmentations(); 
+      // node->parent->updateSizeFromChildren();
   }
   else {
     // swap with predecessor (maximumLeaf of left subtree)
@@ -398,7 +509,7 @@ void SplayTree::removeNode(STNode * node) {
       pred->setRightChild(node->right);
 
       // update subtree sizes from pred to root
-      pred->updateSizeToRoot();
+      pred->updateAugToRoot();
     }
     // if there are some nodes between node and pred
     else {
@@ -421,9 +532,9 @@ void SplayTree::removeNode(STNode * node) {
       // N.B., pred is right child by definition
       originalPredParent->setRightChild(originalPredChild);
 
-      // need to update subtree sizes 
+      // need to update subtree sizes, hashes,  
       // from originalPredParent to root
-      originalPredParent->updateSizeToRoot();
+      originalPredParent->updateAugToRoot();
     }
   }
 
@@ -445,6 +556,12 @@ void SplayTree::remove(int k) {
   //
   // N.B. we have to set its left/right ptrs 
   // to null first, otherwise an entire subtree is deleted
+  if (node->hasParent()) {
+    if (node->parent->left == node)
+      node->parent->left == nullptr;
+    if (node->parent->right == node)
+      node->parent->right == nullptr;
+  }
   node->left = nullptr; 
   node->right = nullptr;
   delete node;
@@ -502,7 +619,8 @@ STNode* SplayTree::_insert(STNode* node, int k) {
     node->setRightChild(_insert(node->right, k));
 
   // update subtree size 
-  node->updateSizeFromChildren();
+  // node->updateSizeFromChildren();
+  node->updateAugmentations();
 
   return node;
 }
@@ -542,6 +660,6 @@ void SplayTree::printInorder() {
 void SplayTree::_printInorder(STNode* node) {
   if (node == nullptr) return;
   _printInorder(node->left);
-  std::cout << node->key << " ";
+  std::cout << node->key << " " << std::flush;
   _printInorder(node->right);
 }
