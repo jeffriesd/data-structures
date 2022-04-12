@@ -10,6 +10,7 @@ To run the unit tests, run `make test`. To check for potential memory leaks from
 
 ### Upcoming features
 * multiset functionality 
-* augment with subtree sizes 
+* augment with subtree sizes - now added - updated lazily during rotations
+* augment with subtree hash (polynomial hash of inorder traversal) - now added - hash for each node is lazily updated during rotations
 * range queries 
 
